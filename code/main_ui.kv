@@ -1,0 +1,257 @@
+#:import Factory kivy.factory.Factory
+
+<FileListEntry>:
+    height: '60dp'
+    Label:
+        font_size: '20sp'
+
+ScreenManager:
+    LoginScreen:
+    FileSettingScreen:
+
+<LoginScreen>:
+    name: 'Login'
+    FloatLayout:
+        Button:
+            text: 'Select File'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.05, 'top': 0.95}
+            on_press: root.manager.current = 'FileSetting'
+
+        Button:
+            text: 'Select IED'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.3, 'top': 0.95}
+            on_press: root.open_ied_popup()
+
+        Button:
+            text: 'Comm Config'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.4, 'top': 0.8}
+            on_press: root.open_comm_config()
+
+        Button:
+            text: 'Transmiss Config'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.6, 'top': 0.8}
+            on_press: root.open_transmiss_config()
+
+        Button:
+            text: 'Setting'
+            size_hint: (0.1, 0.1)
+            pos_hint: {'x': 0.85, 'top': 0.95}
+            on_press: Factory.SettingMenu().open()
+
+        Button:
+            id: btn_start
+            text: 'Start'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.6, 'top': 0.15}
+            on_press: root.start_publishing()
+
+        Button:
+            id: btn_stop
+            disabled: True
+            text: 'Stop'
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.8, 'top': 0.15}
+            on_press: root.stop_publishing()
+
+        Label:
+            text: 'LN List'
+            size_hint: (0.28, 0.05)
+            pos_hint: {'x': 0.02, 'top': 0.70}
+
+        ScrollView:
+            size_hint: (0.28, 0.60)
+            pos_hint: {'x': 0.02, 'top': 0.65}
+            do_scroll_x: False
+
+            BoxLayout:
+                id: ln_list
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(6)
+                padding: dp(4)
+
+        Label:
+            text: 'Config Zone (GCB)'
+            size_hint: (0.27, 0.05)
+            pos_hint: {'x': 0.35, 'top': 0.70}
+
+        ScrollView:
+            size_hint: (0.27, 0.4)
+            pos_hint: {'x': 0.35, 'top': 0.65}
+            do_scroll_x: False
+
+            ConfigZone:
+                id: config_zone 
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(6)
+                padding: dp(4)
+
+        Label:
+            text: 'Config Zone (CB)'
+            size_hint: (0.27, 0.05)
+            pos_hint: {'x': 0.65, 'top': 0.70} 
+
+        ScrollView:
+            size_hint: (0.27, 0.40)
+            pos_hint: {'x': 0.65, 'top': 0.65}
+            do_scroll_x: False
+
+            ConfigZone:
+                id: config_zone_cb      
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(6)
+                padding: dp(4)
+
+        ToggleButton:
+            group: 'mode'
+            text: 'Select GCB'
+            state: 'down'
+            background_normal: ''
+            background_down: ''                                 
+            background_color: (0.2, 0.6, 0.2, 1) if self.state == 'down' else (0.4, 0.4, 0.4, 1)
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.05, 'top': 0.8}
+            on_state: root.on_mode_change('GCB', self.state)
+
+        ToggleButton:
+            group: 'mode'
+            text: 'Select CB'
+            background_normal: ''
+            background_down: ''
+            background_color: (0.2, 0.6, 0.2, 1) if self.state == 'down' else (0.4, 0.4, 0.4, 1)
+            size_hint: (0.15, 0.1)
+            pos_hint: {'x': 0.2, 'top': 0.8}
+            on_state: root.on_mode_change('CB', self.state)
+
+<FileSettingScreen>:
+    name: 'FileSetting'
+    FloatLayout:
+        Button:
+            text: 'Cancel'
+            size_hint: (0.1, 0.1)
+            pos_hint: {'x': 0.85, 'top': 0.15}
+            on_press: root.manager.current = 'Login'
+
+        Button:
+            text: 'Setting'
+            size_hint: (0.1, 0.1)
+            pos_hint: {'x': 0.85, 'top': 0.95}
+            on_press: Factory.SettingMenu().open()
+
+        Button:
+            text: 'Upload File'
+            size_hint: (0.1, 0.1)
+            pos_hint: {'x': 0.05, 'top': 0.95}
+            on_press: root.upload_selected_files()
+
+        Button:
+            text: 'Select'
+            size_hint: (0.1, 0.1)
+            pos_hint: {'x': 0.70, 'top': 0.15}
+            on_press: root.process_selected_file()
+
+        ScrollView:
+            size_hint: (0.2, 0.6)
+            pos_hint: {'x': 0.05, 'top': 0.8}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                id: drive_bar
+                orientation: 'vertical'
+                size_hint_y: 0.6
+                height: self.minimum_height
+                spacing: 10
+
+        FileChooserIconView:
+            id: file_chooser
+            multiselect: True
+            size_hint: (0.6, 0.5)
+            pos_hint: {'x': 0.3, 'top': 0.8}
+
+<SettingMenu@Popup>:
+    title: "Menu Settings"
+    size_hint: 0.5, 0.4
+    auto_dismiss: True
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        Button:
+            text: "minimize window"
+            on_press: app.minimize_window()
+
+        Button:
+            text: "Shutdown"
+            background_color: 1, 0, 0, 1
+            on_press: app.exit_program()
+
+<IedSelector@Popup>:
+    title: ''
+    separator_height: 0
+    size_hint: 1, 1
+    background: ''
+    background_color: 0, 0, 0, 0.5
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        Label:
+            text: 'Select IED'
+            size_hint_y: None
+            height: dp(40)
+            font_size: dp(20)
+            bold: True
+
+        ScrollView:
+            size_hint_y: 1
+            bar_width: 0
+            scroll_type: ['content']
+            do_scroll_x: False
+
+            AnchorLayout:
+                anchor_x: 'center'
+                anchor_y: 'top'
+                size_hint_y: None
+                height: ied_list_container.height + dp(20)
+
+                BoxLayout:
+                    id: ied_list_container
+                    orientation: 'vertical'
+                    size_hint_x: 0.5
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+
+        AnchorLayout:
+            size_hint_y: None
+            height: dp(60)
+            anchor_x: 'center'
+
+            BoxLayout:
+                size_hint_x: 0.5
+                size_hint_y: 1
+                spacing: dp(20)
+
+                Button:
+                    text: "Select"
+                    background_color: 0.2, 0.6, 0.2, 1
+                    font_size: dp(18)
+                    on_press: root.confirm_selection()
+
+                Button:
+                    text: "Cancel"
+                    background_color: 0.5, 0.5, 0.5, 1
+                    font_size: dp(18)
+                    on_press: root.dismiss()
