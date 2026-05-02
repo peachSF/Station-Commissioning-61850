@@ -219,9 +219,9 @@ Network         Ethernet interface (eth0) with raw socket capability
 
 Developed during an internship at:
 
-> **Provincial Electricity Authority (PEA)**  
-> Substation Equipment Testing Division  
-> May 2025 – September 2025
+> **King Mongkut's University of Technology North Bangkok — Rayong Campus**  
+> Final Project  
+> December 2025 – March 2026
 
 **Objective:** Enable engineers to validate IED-to-IED GOOSE communication and protection scheme behavior in a controlled software-defined lab environment, reducing reliance on live substation hardware during pre-commissioning testing phases.
 
