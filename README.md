@@ -1,7 +1,7 @@
 # IEC 61850 GOOSE Simulator
 ### IED Interoperability Test Device
 
-A Python-based IED (Intelligent Electronic Device) interoperability test tool developed during an internship at the **Provincial Electricity Authority (PEA), Substation Equipment Testing Division**.
+A Python-based IED (Intelligent Electronic Device) interoperability test tool developed during an study at the **King Mongkut's University of Technology North Bangkok — Rayong Campus**.
 
 This tool simulates and publishes **GOOSE (Generic Object Oriented Substation Event)** messages compliant with **IEC 61850 Edition 2** standards, enabling functional interoperability testing between IEDs in a software-defined lab environment — without requiring live substation hardware.
 
