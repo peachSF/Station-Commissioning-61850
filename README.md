@@ -232,4 +232,4 @@ Developed during an internship at:
 **Purinat Saereewattana**  
 Electrical and Automation Engineering Technology  
 King Mongkut's University of Technology North Bangkok — Rayong Campus  
-📧 peach4434@gmail.com
+📧 s.purinat03@gmail.com
