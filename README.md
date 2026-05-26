@@ -211,7 +211,6 @@ Network         Ethernet interface (eth0) with raw socket capability
 | IEC 61850-7-2 | MMS (Manufacturing Message Specification) |
 | IEC 61850-7-4 | Compatible Logical Node classes and data object classes |
 | IEC 61850-8-1 | GOOSE message specification |
-| IEC 61850-9-2 | Sampled Values (SV) communication |
 
 ---
 
