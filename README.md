@@ -214,7 +214,9 @@ Network         Ethernet interface (eth0) with raw socket capability
 ——-
 
 ## 🙏 Credits & Acknowledgments
-- Installation steps adapted from [keyvdir/pyiec61850](https://github.com/keyvdir/pyiec61850) 
+- Installation script adapted from [11chri's Dev Container setup](https://github.com/mz-automation/libiec61850/issues/523) 
+  shared in the official libiec61850 issue tracker
+- Which itself references [keyvdir/pyiec61850](https://github.com/keyvdir/pyiec61850) 
   and the official [libiec61850 README](https://github.com/mz-automation/libiec61850/blob/v1.6/pyiec61850/README.md)
 - Built on [libiec61850](https://github.com/mz-automation/libiec61850) (GPLv3) by MZ Automation GmbH
 ---
