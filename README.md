@@ -211,7 +211,12 @@ Network         Ethernet interface (eth0) with raw socket capability
 | IEC 61850-7-2 | MMS (Manufacturing Message Specification) |
 | IEC 61850-7-4 | Compatible Logical Node classes and data object classes |
 | IEC 61850-8-1 | GOOSE message specification |
+——-
 
+## 🙏 Credits & Acknowledgments
+- Installation steps adapted from [keyvdir/pyiec61850](https://github.com/keyvdir/pyiec61850) 
+  and the official [libiec61850 README](https://github.com/mz-automation/libiec61850/blob/v1.6/pyiec61850/README.md)
+- Built on [libiec61850](https://github.com/mz-automation/libiec61850) (GPLv3) by MZ Automation GmbH
 ---
 
 ## 🏢 Project Background
