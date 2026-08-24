@@ -468,15 +468,38 @@ class GooseManager:
     # TO MMS VALUE
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _parse_numeric_str(self, val):
+        """แปลงค่าที่อาจมี unit suffix (เช่น '230k') ให้เป็น float จริง"""
+        if val is None:
+            return 0.0
+        if isinstance(val, (int, float)):
+            return float(val)
+
+        s = str(val).strip()
+        if not s:
+            return 0.0
+
+        last = s[-1]
+        if last in UNIT_MULTIPLIERS:
+            try:
+                return float(s[:-1]) * UNIT_MULTIPLIERS[last]
+            except ValueError:
+                return 0.0
+
+        try:
+            return float(s)
+        except ValueError:
+            return 0.0
+
     def _to_mms_value(self, val, da_type):
         try:
             if da_type == "BOOLEAN":
                 return iec.MmsValue_newBoolean(bool(val))
             elif da_type in ("FLOAT32", "FLOAT64"):
-                return iec.MmsValue_newFloat(float(val or 0))
+                return iec.MmsValue_newFloat(self._parse_numeric_str(val))
             elif da_type in ("INT8", "INT16", "INT32", "INT64",
-                             "INT8U", "INT16U", "INT32U"):
-                return iec.MmsValue_newIntegerFromInt32(int(val or 0))
+                            "INT8U", "INT16U", "INT32U"):
+                return iec.MmsValue_newIntegerFromInt32(int(self._parse_numeric_str(val)))
             elif da_type == "QUALITY":
                 mms = iec.MmsValue_newBitString(13)
                 iec.MmsValue_setBitStringFromInteger(mms, int(val or 0))
@@ -488,7 +511,7 @@ class GooseManager:
             elif da_type in ("TIMESTAMP", "UTC TIME", "UTCTIME"):
                 import time
                 ts = int(time.time() * 1000) if val is None else int(val or 0)
-                return iec.MmsValue_newUtcTime(ts)
+                return iec.MmsValue_newUtcTimeByMsTime(ts)
             elif da_type in ("VISIBLE STRING", "VISIBLESTRING", "VISIBLE_STRING"):
                 return iec.MmsValue_newVisibleString(str(val or ""))
             elif da_type in ("OCTET STRING", "OCTETSTRING"):

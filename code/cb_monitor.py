@@ -41,6 +41,14 @@ DRY_RUN_INTERVAL = 5.0     # วิ: dry-run toggle interval
 
 DBPOS_MAP = {0: 'intermediate', 1: 'off', 2: 'on', 3: 'bad'}
 
+# ตัวคูณของ unit prefix ที่มาจาก LNAttributePopup (UI.py)
+UNIT_MULTIPLIERS = {
+    'k': 1e3,    # Kilo
+    'M': 1e6,    # Mega
+    'm': 1e-3,   # milli
+    'μ': 1e-6,   # micro
+}
+
 log = logging.getLogger("CBMonitor")
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -258,10 +266,10 @@ class IEDPoller:
 
 class CBMonitor:
     def __init__(self, on_status_change):
-        self._callback  = on_status_change
-        self._pollers   = {}     # { ied_name: IEDPoller }
-        self._dry_event = None
-        _dry_entries: list = []
+        self._callback     = on_status_change
+        self._pollers      = {}
+        self._dry_event    = None
+        self._dry_entries  = []
 
     # ── Public API ───────────────────────────────────────────────────────────
 
