@@ -478,9 +478,13 @@ def process_scd_file(file_path, output_dir_json):
                     .setdefault(datset_name, [])
 
                 seen_entries = set()
-                for fcda in datset.findall('scl:FCDA', NS):
+                for fcda_index, fcda in enumerate(datset.findall('scl:FCDA', NS)):
                     do_name_raw = fcda.get('doName', '')
                     da_name_raw = fcda.get('daName')
+                    # True ถ้า FCDA นี้อ้างอิงระดับ DO ทั้งก้อน (ไม่ระบุ daName)
+                    # → ตอน publish ต้องห่อ DA ที่ expand ออกมาเป็น struct เดียว
+                    # ให้ตรงกับ dataset definition จริง (1 FCDA = 1 dataset member)
+                    is_grouped = not bool(da_name_raw)
                     prefix      = fcda.get('prefix', '')
                     ln_class    = fcda.get('lnClass', '')
                     ln_inst_f   = fcda.get('lnInst', '')
@@ -551,6 +555,8 @@ def process_scd_file(file_path, output_dir_json):
                             "Type"        : da_type,
                             "FC"          : fc,
                             "InitialValue": init_val,
+                            "FCDAIndex"   : fcda_index,
+                            "IsGrouped"   : is_grouped,
                         }
                         ied_json_structure[ied_name]["LDevices"][ld_inst] \
                             ["DataSets"][datset_name].append(entry)

@@ -21,6 +21,15 @@ NETWORK_IFACE  = "eth0"
 WATCH_INTERVAL = 0.5   # ตรวจ JSON เปลี่ยนแปลงทุกกี่วินาที
 JSON_DIR       = "/home/developer/Desktop/SC61850/Json_File"
 
+# ตัวคูณของ unit prefix ที่มาจาก LNAttributePopup (UI.py)
+# ต้องตรงกับ UNIT_MAP ใน UI.py — ใช้แปลง '230k' → 230 * 1e3 = 230000.0
+UNIT_MULTIPLIERS = {
+    'k': 1e3,    # Kilo
+    'M': 1e6,    # Mega
+    'm': 1e-3,   # milli
+    'μ': 1e-6,   # micro
+}
+
 log = logging.getLogger("GooseManager")
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -420,6 +429,62 @@ class GooseManager:
     # PUBLISH SESSION
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _add_dataset_entries(self, dataset_list, paired):
+        """
+        เพิ่ม dataset member เข้า dataset_list ตามลำดับ FCDA เดิมใน SCL
+        (สำคัญ: IEC 61850 กำหนดว่า allData ต้องเรียงตามลำดับ dataset definition)
+
+        entry ที่มาจาก FCDA เดียวกันและ IsGrouped=True (คือ FCDA อ้างอิงระดับ DO
+        ทั้งก้อน ไม่ได้ระบุ daName) จะถูกห่อเป็น MMS structure เดียว ให้ตรงกับ
+        dataset definition จริง (1 FCDA = 1 dataset member) แทนที่จะแตกเป็น
+        top-level item หลายตัว ซึ่งทำให้ numDatSetEntries ไม่ตรงกับที่ subscriber
+        คาดหวัง (เจอจาก capture ของ IED จริงที่ encode เป็น structure)
+        """
+        groups = []          # [[(entry, val), ...], ...] แบ่งตาม FCDAIndex
+        current_key  = object()   # ค่า sentinel ที่ไม่มีทาง match อะไรได้ตอนเริ่ม
+        current_group = []
+        for idx, (entry, val) in enumerate(paired):
+            # legacy JSON ที่ยังไม่มี FCDAIndex (parse ด้วยโค้ดเก่าก่อน patch นี้)
+            # → ใช้ index ของตัวเองเป็น key เฉพาะตัว กันไม่ให้ merge กันผิดๆ
+            key = entry.get("FCDAIndex")
+            if key is None:
+                key = f"__legacy_{idx}__"
+
+            if key != current_key:
+                if current_group:
+                    groups.append(current_group)
+                current_group = []
+                current_key = key
+            current_group.append((entry, val))
+        if current_group:
+            groups.append(current_group)
+
+        for group in groups:
+            is_grouped = bool(group[0][0].get("IsGrouped", False))
+
+            if is_grouped and len(group) > 1:
+                struct = iec.MmsValue_createEmptyStructure(len(group))
+                ok = True
+                for i, (entry, val) in enumerate(group):
+                    da_type = (entry.get("Type") or "").upper()
+                    mms = self._to_mms_value(val, da_type)
+                    if mms is None:
+                        ok = False
+                        continue
+                    iec.MmsValue_setElement(struct, i, mms)
+                if ok:
+                    iec.LinkedList_add(dataset_list, struct)
+                else:
+                    log.error(
+                        f"_add_dataset_entries: struct ของ FCDA "
+                        f"{group[0][0].get('DO')} มี element ที่แปลงไม่ผ่าน — ข้าม member นี้ทั้งก้อน")
+            else:
+                for entry, val in group:
+                    da_type = (entry.get("Type") or "").upper()
+                    mms = self._to_mms_value(val, da_type)
+                    if mms is not None:
+                        iec.LinkedList_add(dataset_list, mms)
+
     def _publish_session(self, session, json_data):
         ld_inst      = session.gcb_info["LDInst"]
         dataset_name = session.gcb_info["DataSet"]
@@ -434,19 +499,18 @@ class GooseManager:
             iec.GoosePublisher_setSqNum(session.publisher, session.sq_num)
             dataset_list = iec.LinkedList_create()
 
-        log_vals = []
+        log_vals   = []
+        paired     = []   # [(entry, val), ...] ตามลำดับ dataset เดิม
         for i, entry in enumerate(entries):
             if i >= len(session.last_snapshot):
                 break
-            val     = session.last_snapshot[i]
-            da_type = (entry.get("Type") or "").upper()
+            val = session.last_snapshot[i]
             log_vals.append(
                 f"{entry['LN']}.{entry['DO']}.{entry['DA']}={val}")
+            paired.append((entry, val))
 
-            if IEC_AVAILABLE and session.publisher:
-                mms = self._to_mms_value(val, da_type)
-                if mms is not None:
-                    iec.LinkedList_add(dataset_list, mms)
+        if IEC_AVAILABLE and session.publisher:
+            self._add_dataset_entries(dataset_list, paired)
 
         if IEC_AVAILABLE and session.publisher:
             time_to_live = int(session.next_interval * 1000 * 2)
@@ -469,7 +533,14 @@ class GooseManager:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _parse_numeric_str(self, val):
-        """แปลงค่าที่อาจมี unit suffix (เช่น '230k') ให้เป็น float จริง"""
+        """
+        แปลงค่าตัวเลขที่อาจมี unit suffix จาก UI (เช่น '230k', '1.5M', '75m')
+        ให้เป็น float จริงตาม prefix — รองรับ int/float ที่ส่งมาตรงๆ ด้วย
+
+        แก้บั๊ก: เดิม _to_mms_value ใช้ float(val)/int(val) ตรงๆ ซึ่ง crash
+        ทันทีถ้า val เป็น string ที่มี unit suffix ต่อท้าย (เช่น '230k')
+        ทำให้ attribute นั้นถูกตัดออกจาก GOOSE dataset ที่ publish จริงแบบเงียบๆ
+        """
         if val is None:
             return 0.0
         if isinstance(val, (int, float)):
@@ -484,11 +555,13 @@ class GooseManager:
             try:
                 return float(s[:-1]) * UNIT_MULTIPLIERS[last]
             except ValueError:
+                log.error(f"_parse_numeric_str: parse '{s}' (unit='{last}') ไม่ได้")
                 return 0.0
 
         try:
             return float(s)
         except ValueError:
+            log.error(f"_parse_numeric_str: parse '{s}' เป็นตัวเลขไม่ได้")
             return 0.0
 
     def _to_mms_value(self, val, da_type):
@@ -498,7 +571,7 @@ class GooseManager:
             elif da_type in ("FLOAT32", "FLOAT64"):
                 return iec.MmsValue_newFloat(self._parse_numeric_str(val))
             elif da_type in ("INT8", "INT16", "INT32", "INT64",
-                            "INT8U", "INT16U", "INT32U"):
+                             "INT8U", "INT16U", "INT32U"):
                 return iec.MmsValue_newIntegerFromInt32(int(self._parse_numeric_str(val)))
             elif da_type == "QUALITY":
                 mms = iec.MmsValue_newBitString(13)
@@ -510,6 +583,9 @@ class GooseManager:
                 return mms
             elif da_type in ("TIMESTAMP", "UTC TIME", "UTCTIME"):
                 import time
+                # แก้บั๊ก: MmsValue_newUtcTime รับ uint32_t (วินาที) เท่านั้น
+                # ค่า ms-since-epoch เกิน uint32_t มาก ทำให้ SWIG throw TypeError
+                # เปลี่ยนไปใช้ MmsValue_newUtcTimeByMsTime ซึ่งรับ uint64_t (ms) แทน
                 ts = int(time.time() * 1000) if val is None else int(val or 0)
                 return iec.MmsValue_newUtcTimeByMsTime(ts)
             elif da_type in ("VISIBLE STRING", "VISIBLESTRING", "VISIBLE_STRING"):

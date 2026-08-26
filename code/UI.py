@@ -1789,8 +1789,26 @@ class MainApp(App):
         return Builder.load_file('main_ui.kv')
 
     def on_start(self):
+        # ล้าง JSON เก่าที่อาจค้างจาก session ก่อนหน้า (เช่นโปรแกรมโดน
+        # force-kill / crash / ไฟดับ ก่อนถึง exit_program() ตามปกติ)
+        # กันไม่ให้โหลด JSON ที่ parse ด้วยโค้ดเวอร์ชันเก่าไปใช้งานทั้งที่
+        # ควร parse ใหม่จาก SCD/CID
+        self._clear_json_dir()
+
         # เมื่อ restore กลับมาจาก minimize → คืน fullscreen
         Window.bind(on_restore=self._on_restore)
+
+    def _clear_json_dir(self):
+        json_dir = "/home/developer/Desktop/SC61850/Json_File"
+        try:
+            if not os.path.isdir(json_dir):
+                return
+            for f in os.listdir(json_dir):
+                if f.endswith('.json'):
+                    os.remove(os.path.join(json_dir, f))
+            print(f"_clear_json_dir: ล้าง JSON เก่าใน '{json_dir}' เรียบร้อย")
+        except Exception as e:
+            print(f"_clear_json_dir: ลบ JSON เก่าไม่สำเร็จ — {e}")
 
     def _on_restore(self, *args):
         Window.fullscreen = 'auto'
@@ -1799,13 +1817,7 @@ class MainApp(App):
         Window.minimize()
 
     def exit_program(self):
-        json_dir = "/home/developer/Desktop/SC61850/Json_File"
-        try:
-            for f in os.listdir(json_dir):
-                if f.endswith('.json'):
-                    os.remove(os.path.join(json_dir, f))
-        except Exception as e:
-            print(f"Error deleting json files: {e}")
+        self._clear_json_dir()
 
         # cleanup CBMonitor ก่อน exit เพื่อไม่ให้ background thread ค้าง
         try:
